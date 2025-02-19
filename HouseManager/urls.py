@@ -18,5 +18,14 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("finance/", include("Finances.urls")),
+    path("fit/", include("Fitness.urls")),
+    path("finance/", include("Finances.urls"),name="finance"),
+    path("unicorn/", include("django_unicorn.urls")),
+    path("", include("Home.urls")),
 ]
+
+
+
+handler404 = 'Finances.views.page_not_found'
+handler403 = 'Finances.views.page_forbiden'
+handler500 = 'Finances.views.page_error'

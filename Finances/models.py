@@ -1,25 +1,36 @@
 from django.db import models
 from colorfield.fields import ColorField
+from django.contrib.auth.models import User
+
+
 
 cycleTypes = {
     "S": "Semanal",
-    "BiS": "BiSemanal",
-    "M": "mensal",
+    "BiS": "Bisemanal",
+    "M": "Mensal",
     "Tri": "Trimestral",
     "SeM": "Semestral",
     "A": "Anual",
 }
 
 transactionConstraint = {
-    "A": "Any Day",
-    "BW": "Business Day before weekend",
-    "WB": "Business Day after weekend",
+    "A": "Qualquer Dia",
+    "BW": "Dia útil ANTERIOR",
+    "WB": "Dia útil POSTERIOR",
 }
+
+
+
 
 
 #=========== Registers =========#
 class House(models.Model):
     Name = models.CharField(max_length=25)
+
+
+class HouseMember(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    houses = models.ManyToManyField(House)
 
 
 class Month(models.Model):
@@ -36,28 +47,6 @@ class AccountEntry(models.Model):
 
 
 
-#============== Series ==============#
-class TransactionSerie(models.Model):
-    active = models.BooleanField(default=True) #if the series is active
-    dateExpect = models.IntegerField() #days from the beginning of the cycle
-    businessDay = models.CharField(max_length=3, choices=transactionConstraint.items()) #if the transaction occurs only in business days
-    name = models.CharField(max_length=200)
-
-
-class CreditCard(models.Model):
-    series = models.OneToOneField(TransactionSerie, on_delete=models.SET_NULL, null=True)
-    juro = models.FloatField()
-
-
-class PlannedEvent(models.Model):
-    series = models.OneToOneField(TransactionSerie, on_delete=models.SET_NULL, null=True)
-    isFixedDate = models.BooleanField(default=True)
-    cycle = models.CharField(max_length=4, choices=cycleTypes.items()) #cycle of occurence of the event
-    isFixedValue = models.BooleanField(default=True)
-    expectValue = models.FloatField()
-
-
-
 #=========== Transaction =========#
 class Tag(models.Model):
     isDebt = models.BooleanField(default=True)
@@ -66,32 +55,59 @@ class Tag(models.Model):
 
 
 
-class PaymentReference(models.Model):
-    paid = models.BooleanField(default=False)
-    directDebt = models.BooleanField(default=False)
-    mb_reference = models.CharField(max_length=20)
-    mb_entity = models.CharField(max_length=20)
-    IBAN = models.CharField(max_length=36)
-    description = models.CharField(max_length=350)
+
+
+#============== Series ==============#
+class TransactionSerie(models.Model):
+    user_field = models.ForeignKey(User, on_delete=models.CASCADE)
+    active = models.BooleanField(default=True) #if the series is active
+    nextDateExpected = models.DateField()
+    businessDay = models.CharField(max_length=3, choices=transactionConstraint.items()) #if the transaction occurs only in business days
+    name = models.CharField(max_length=25, unique=True)
+
+
+class CreditCard(TransactionSerie):
+    juro = models.FloatField()
+
+
+class PlannedEvent(TransactionSerie):
+    isFixedDate = models.BooleanField(default=True)
+    cycle = models.CharField(max_length=4, choices=cycleTypes.items()) #cycle of occurence of the event
+    isFixedValue = models.BooleanField(default=True)
+    expectValue = models.FloatField()
+    tags = models.ManyToManyField(Tag)
+
+
+
+
+
+
 
 
 class Transaction(models.Model):
-    creditCard = models.ForeignKey(CreditCard, null=True, on_delete=models.SET_NULL)
+    #relations
+    user_field = models.ForeignKey(User, on_delete=models.CASCADE)
+    fromCreditCard = models.ForeignKey(CreditCard, related_name="fromCC",null=True, on_delete=models.SET_NULL)
     event = models.ForeignKey(PlannedEvent, null=True, on_delete=models.SET_NULL)
-    monthRef = models.ForeignKey(Month, on_delete=models.SET_NULL, null=True)
+    monthReference = models.ForeignKey(Month, on_delete=models.CASCADE)
 
+    #properties
     isDebt = models.BooleanField(default=True)
     value = models.FloatField()
-    dateRegister = models.DateField()
+    dateRegister = models.DateField(auto_now_add=True)
     dateEffect = models.DateField()
-    personal = models.BooleanField(default=False)
-    paymentReference = models.OneToOneField(PaymentReference, on_delete=models.SET_NULL, null=True)
-
-
-
-
-
-
-
-
+    tags = models.ManyToManyField(Tag)
+    paid = models.BooleanField(default=False,blank=True)
+    
+    #Payment Reference
+    directDebt = models.BooleanField(default=False,blank=True)
+    mb_reference = models.CharField(max_length=20,blank=True)
+    mb_entity = models.CharField(max_length=20,blank=True)
+    IBAN = models.CharField(max_length=36,blank=True)
+    paymentDescription = models.CharField(max_length=300)
+    toCreditCard = models.ForeignKey(CreditCard, null=True, on_delete=models.SET_NULL)
+    
+    #identifiers
+    name = models.CharField(max_length=35, unique=True)
+    description = models.TextField()
 

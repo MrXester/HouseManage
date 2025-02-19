@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,6 +33,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'colorfield',
     "Finances.apps.FinancesConfig",
+    "Home.apps.HomeConfig",
+    "django_unicorn",
     "Fitness.apps.FitnessConfig",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,7 +59,7 @@ ROOT_URLCONF = 'HouseManager.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,7 +81,7 @@ WSGI_APPLICATION = 'HouseManager.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -122,7 +124,30 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    "/static/assets/",
+]
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+from django.http import HttpResponseNotFound
+from django.template import loader
+from django.http import HttpResponse
+
+class Custom404ErrorMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+    def __call__(self, request):
+        response = self.get_response(request)
+        if response.status_code == 404:
+            html_template = loader.get_template('general/page-404.html')
+            return HttpResponse(html_template.render({}, request))
+        return response
+
+MIDDLEWARE.append("HouseManager.settings.Custom404ErrorMiddleware")

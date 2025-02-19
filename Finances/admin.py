@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import House,AccountEntry,Tag,Month
+from .models import House,HouseMember,AccountEntry,Tag,Month,CreditCard, PlannedEvent, TransactionSerie, Transaction
 
 
 
@@ -21,7 +21,12 @@ class MonthAdmin(admin.ModelAdmin):
 
 
 
+admin.site.register(HouseMember)
 admin.site.register(House,HouseAdmin)
 admin.site.register(Tag,TagAdmin)
 admin.site.register(AccountEntry,AccountEntryAdmin)
 admin.site.register(Month,MonthAdmin)
+admin.site.register(CreditCard)
+admin.site.register(PlannedEvent)
+admin.site.register(TransactionSerie)
+admin.site.register(Transaction)
